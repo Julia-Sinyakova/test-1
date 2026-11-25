@@ -197,13 +197,13 @@
             <label for="student-name">Введите Фамилию, Имя и класс:</label>
             <input type="text" id="student-name" placeholder="Например: Иванов Иван, 10А">
         </div>
-        <button type="button" id="start-btn">Начать тест</button>
+        <button type="button" id="start-btn" onclick="startTest()">Начать тест</button>
     </div>
 
     <div id="quiz-screen">
         <div class="progress-info" id="progress-text">Вопрос 1 из 10</div>
         <div id="current-question-container"></div>
-        <button type="button" id="next-btn" disabled>Далее</button>
+        <button type="button" id="next-btn" onclick="nextQuestion()" disabled>Далее</button>
     </div>
 
     <div id="result-box">
@@ -290,41 +290,35 @@
         return "2 (Неудовлетворительно)";
     }
 
-    const startScreen = document.getElementById('start-screen');
-    const quizScreen = document.getElementById('quiz-screen');
-    const resultBox = document.getElementById('result-box');
-    const reviewContainer = document.getElementById('review-container');
-    const timerBar = document.getElementById('timer-bar');
-    const timeDisplay = document.getElementById('time-display');
+    let studentName = "";
+    let currentQuestionIndex = 0;
+    let userAnswers = new Array(questions.length).fill(null);
+    let totalSeconds = TIME_LIMIT_MINUTES * 60;
+    let timerInterval;
+    let isSubmitted = false;
 
-    const startBtn = document.getElementById('start-btn');
-    const nextBtn = document.getElementById('next-btn');
-    const questionContainer = document.getElementById('current-question-container');
+    function startTest() {
+        const inputVal = document.getElementById('student-name').value.trim();
+        if (!inputVal) {
+            alert("Пожалуйста, введите Фамилию и Имя перед началом теста!");
+            return;
+        }
+        studentName = inputVal;
+        
+        document.getElementById('start-screen').style.display = 'none';
 Используйте код с осторожностью.
-const progressText = document.getElementById('progress-text');
-let studentName = "";
-let currentQuestionIndex = 0;
-let userAnswers = new Array(questions.length).fill(null);
-let totalSeconds = TIME_LIMIT_MINUTES * 60;
-let timerInterval;
-let isSubmitted = false;
-startBtn.addEventListener('click', function() {
-const inputVal = document.getElementById('student-name').value.trim();
-if (!inputVal) {
-alert("Пожалуйста, введите Фамилию и Имя перед началом теста!");
-return;
-}
-studentName = inputVal;
-startScreen.style.display = 'none';
-quizScreen.style.display = 'block';
-timerBar.style.display = 'block';
+document.getElementById('quiz-screen').style.display = 'block';
+document.getElementById('timer-bar').style.display = 'block';
 renderQuestion(currentQuestionIndex);
 startTimer();
-});
+}
 function renderQuestion(index) {
+const questionContainer = document.getElementById('current-question-container');
+const nextBtn = document.getElementById('next-btn');
+const progressText = document.getElementById('progress-text');
 questionContainer.innerHTML = '';
 nextBtn.disabled = true;
-progressText.textContent = Вопрос ${index + 1} из ${questions.length};
+progressText.textContent = "Вопрос " + (index + 1) + " из " + questions.length;
 if (index === questions.length - 1) {
 nextBtn.textContent = "Завершить и отправить тест";
 } else {
@@ -344,31 +338,31 @@ const radio = document.createElement('input');
 radio.type = 'radio';
 radio.name = 'current_option';
 radio.value = oIndex;
-radio.addEventListener('change', function() {
+radio.onchange = function() {
 userAnswers[index] = parseInt(this.value);
 nextBtn.disabled = false;
-});
+};
 label.appendChild(radio);
 label.appendChild(document.createTextNode(" " + opt));
 qDiv.appendChild(label);
 });
 questionContainer.appendChild(qDiv);
 }
-nextBtn.addEventListener('click', function() {
+function nextQuestion() {
 if (currentQuestionIndex < questions.length - 1) {
 currentQuestionIndex++;
 renderQuestion(currentQuestionIndex);
 } else {
 submitTest(false);
 }
-});
+}
 function startTimer() {
 updateTimerDisplay();
-timerInterval = setInterval(() => {
+timerInterval = setInterval(function() {
 totalSeconds--;
 updateTimerDisplay();
 if (totalSeconds <= 60 && totalSeconds > 0) {
-timerBar.classList.add('warning');
+document.getElementById('timer-bar').classList.add('warning');
 }
 if (totalSeconds <= 0) {
 clearInterval(timerInterval);
@@ -379,9 +373,12 @@ submitTest(true);
 function updateTimerDisplay() {
 const minutes = Math.floor(totalSeconds / 60);
 const seconds = totalSeconds % 60;
-timeDisplay.textContent = ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')};
+const minStr = minutes < 10 ? "0" + minutes : minutes;
+const secStr = seconds < 10 ? "0" + seconds : seconds;
+document.getElementById('time-display').textContent = minStr + ":" + secStr;
 }
 function renderReview() {
+const reviewContainer = document.getElementById('review-container');
 reviewContainer.innerHTML = 'Разбор ваших ответов:';
 questions.forEach((q, qIndex) => {
 const answerIndex = userAnswers[qIndex];
@@ -396,30 +393,30 @@ userAnsDiv.className = 'review-answer';
 if (answerIndex !== null) {
 if (answerIndex === q.correct) {
 itemDiv.classList.add('correct');
-userAnsDiv.textContent = Ваш ответ: ${q.options[answerIndex]} — Верно!;
+userAnsDiv.textContent = "Ваш ответ: " + q.options[answerIndex] + " — Верно!";
 itemDiv.appendChild(userAnsDiv);
 } else {
 itemDiv.classList.add('wrong');
-userAnsDiv.textContent = Ваш ответ: ${q.options[answerIndex]} — Ошибка;
+userAnsDiv.textContent = "Ваш ответ: " + q.options[answerIndex] + " — Ошибка";
 itemDiv.appendChild(userAnsDiv);
 const correctHint = document.createElement('div');
 correctHint.className = 'review-correct-hint';
-correctHint.textContent = Правильный ответ: ${q.options[q.correct]};
+correctHint.textContent = "Правильный ответ: " + q.options[q.correct];
 itemDiv.appendChild(correctHint);
 }
 } else {
 itemDiv.classList.add('unanswered');
-userAnsDiv.textContent = Ваш ответ: Нет ответа (время вышло);
+userAnsDiv.textContent = "Ваш ответ: Нет ответа (время вышло)";
 itemDiv.appendChild(userAnsDiv);
 const correctHint = document.createElement('div');
 correctHint.className = 'review-correct-hint';
-correctHint.textContent = Правильный ответ: ${q.options[q.correct]};
+correctHint.textContent = "Правильный ответ: " + q.options[q.correct];
 itemDiv.appendChild(correctHint);
 }
 reviewContainer.appendChild(itemDiv);
 });
 }
-async function submitTest(isTimeOut = false) {
+async function submitTest(isTimeOut) {
 if (isSubmitted) return;
 isSubmitted = true;
 clearInterval(timerInterval);
@@ -432,32 +429,27 @@ const answerIndex = userAnswers[qIndex];
 if (answerIndex !== null) {
 if (answerIndex === q.correct) {
 correctCount++;
-reportDetails.push(
-${q.question}\nСтатус: [ВЕРНО]\nОтвет ученика: ${q.options[answerIndex]}
-);
+reportDetails.push(q.question + "\nСтатус: [ВЕРНО]\nОтвет ученика: " + q.options[answerIndex]);
 } else {
 wrongCount++;
-reportDetails.push(
-${q.question}\nСтатус: [ОШИБКА]\nОтвет ученика: ${q.options[answerIndex]} (Правильно: ${q.options[q.correct]})
-);
+reportDetails.push(q.question + "\nСтатус: [ОШИБКА]\nОтвет ученика: " + q.options[answerIndex] + " (Правильно: " + q.options[q.correct] + ")");
 }
 } else {
 unansweredCount++;
-reportDetails.push(
-${q.question}\nСтатус: [НЕТ ОТВЕТА]\nОтвет ученика: — (Правильно: ${q.options[q.correct]})
-);
+reportDetails.push(q.question + "\nСтатус: [НЕТ ОТВЕТА]\nОтвет ученика: — (Правильно: " + q.options[q.correct] + ")");
 }
 });
 const finalGrade = calculateGrade(correctCount, questions.length);
+const nextBtn = document.getElementById('next-btn');
 nextBtn.disabled = true;
 nextBtn.textContent = "Отправка результатов...";
-timerBar.style.display = 'none';
+document.getElementById('timer-bar').style.display = 'none';
 const formData = {
 "Ученик": studentName,
 "Оценка": finalGrade,
-"Результат": ${correctCount} из ${questions.length} баллов,
+"Результат": correctCount + " из " + questions.length + " баллов",
 "Статус сдачи": isTimeOut ? "Время вышло (автоотправка)" : "Сдано вовремя",
-"Сводка": Верно: ${correctCount} | С ошибкой: ${wrongCount} | Без ответа: ${unansweredCount},
+"Сводка": "Верно: " + correctCount + " | С ошибкой: " + wrongCount + " | Без ответа: " + unansweredCount,
 "Подробный разбор": "\n\n" + reportDetails.join("\n\n")
 };
 try {
@@ -471,13 +463,14 @@ body: JSON.stringify(formData)
 });
 const result = await response.json();
 if (result.code === 200 || response.ok) {
-quizScreen.style.display = 'none';
-resultBox.style.display = 'block';
+document.getElementById('quiz-screen').style.display = 'none';
+document.getElementById('result-box').style.display = 'block';
 if (isTimeOut) {
 document.getElementById('result-title').textContent = "Время вышло!";
 }
 document.getElementById('result-text').innerHTML =
-${studentName}, ваш результат: ${correctCount} из ${questions.length}.<br>Ваша оценка: <strong>${finalGrade}</strong>;
+studentName + ", ваш результат: " + correctCount + " из " + questions.length + ".
+Ваша оценка: " + finalGrade + "";
 renderReview();
 } else {
 alert("Ошибка сервиса FormCarry: " + (result.message || "Проверьте ссылку FORMCARRY_URL"));
@@ -492,4 +485,3 @@ nextBtn.disabled = false;
 nextBtn.textContent = "Повторить отправку";
 }
 }
-
